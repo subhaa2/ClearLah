@@ -1,0 +1,6 @@
+streamlit
+google-genai
+pydantic>=2
+google-cloud-texttospeech
+google-cloud-vision
+python-dotenv
