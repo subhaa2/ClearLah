@@ -72,10 +72,23 @@ def build_listen_text(result: LetterExplanation, language: str) -> str:
     return f"{result.explanation.strip()}\n\n{heading}.\n{action_text or no_action}".strip()
 
 
+def cloud_credentials():
+    from google.oauth2 import service_account
+    from streamlit.errors import StreamlitSecretNotFoundError
+
+    try:
+        account = st.secrets.get("gcp_service_account")
+    except StreamlitSecretNotFoundError:
+        return None
+    if account is None:
+        return None
+    return service_account.Credentials.from_service_account_info(dict(account))
+
+
 def synthesize_explanation(text: str, language: str) -> bytes:
     from google.cloud import texttospeech
 
-    with texttospeech.TextToSpeechClient(transport="rest") as client:
+    with texttospeech.TextToSpeechClient(transport="rest", credentials=cloud_credentials()) as client:
         response = client.synthesize_speech(
             input=texttospeech.SynthesisInput(text=text),
             voice=texttospeech.VoiceSelectionParams(language_code=VOICE_LANGUAGES[language]),
@@ -91,7 +104,7 @@ def synthesize_explanation(text: str, language: str) -> bytes:
 def extract_original_text(data: bytes) -> str:
     from google.cloud import vision
 
-    with vision.ImageAnnotatorClient(transport="rest") as client:
+    with vision.ImageAnnotatorClient(transport="rest", credentials=cloud_credentials()) as client:
         response = client.document_text_detection(
             image=vision.Image(content=data), timeout=20
         )
